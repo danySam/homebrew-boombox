@@ -4,10 +4,22 @@ class Boombox < Formula
   version "0.2.1"
   license "MIT"
 
-  # One tarball per architecture, built by the release workflow. This used
-  # to be a source build, which meant every install fetched a Rust
-  # toolchain and LLVM -- about two gigabytes -- to produce an 18 MB binary
-  # and then throw the toolchain away.
+  # macOS installs the binary the release workflow built. Linux compiles.
+  #
+  # That asymmetry is measured, not an oversight. Homebrew builds its Linux
+  # formulae against its own glibc -- 2.39 here -- so its libasound.so.2
+  # requires GLIBC_2.38, while a binary built against a distribution's glibc
+  # is loaded by that distribution's libc, 2.35 on Ubuntu 22.04. Point the
+  # one at the other and it dies before main():
+  #
+  #   libasound.so.2: version `GLIBC_2.38' not found
+  #
+  # Nothing reconciles two libcs from outside: not RUNPATH, not
+  # LD_LIBRARY_PATH, not patchelf (whose own bottle cannot run on the older
+  # systems that would need it). Homebrew gets away with it only for what it
+  # compiles itself, which is the door this takes on Linux. People who would
+  # rather not compile can take the tarball from the release page, which is
+  # built against the distribution's own ALSA and needs no Homebrew at all.
   on_macos do
     on_arm do
       url "https://github.com/danySam/boombox/releases/download/v0.2.1/boombox-v0.2.1-aarch64-apple-darwin.tar.gz"
@@ -20,19 +32,14 @@ class Boombox < Formula
   end
 
   on_linux do
-    # Audio comes out of this machine, so streaming is compiled in. On Linux
-    # that links ALSA, and a prebuilt binary needs it at run time -- not just
-    # at build time, as the source formula did.
-    depends_on "alsa-lib"
+    url "https://github.com/danySam/boombox/archive/refs/tags/v0.2.1.tar.gz"
+    sha256 "059343c6ac5d7780997d0e9934dd1cee3ed91ad569b724665cd9c67f7f22c842"
 
-    on_arm do
-      url "https://github.com/danySam/boombox/releases/download/v0.2.1/boombox-v0.2.1-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "87f895bc30b008b9b2bd5a98abd71ed9350e5432a3222ec8253d4445c100d183"
-    end
-    on_intel do
-      url "https://github.com/danySam/boombox/releases/download/v0.2.1/boombox-v0.2.1-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "784080fcd98306ed1efd069db0d439cea4bdcb065de264b90f6b960cf9b9e408"
-    end
+    depends_on "pkgconf" => :build
+    depends_on "rust" => :build
+    # Audio comes out of this machine, so streaming is compiled in, and on
+    # Linux that means ALSA to build against and to load at run time.
+    depends_on "alsa-lib"
   end
 
   livecheck do
@@ -40,8 +47,8 @@ class Boombox < Formula
     strategy :github_latest
   end
 
-  # `brew install --HEAD` still builds from source: there is no tarball for
-  # a commit nobody tagged.
+  # `brew install --HEAD` builds from source on either platform: there is no
+  # tarball for a commit nobody tagged.
   head do
     url "https://github.com/danySam/boombox.git", branch: "main"
     depends_on "pkgconf" => :build
@@ -49,13 +56,15 @@ class Boombox < Formula
   end
 
   def install
-    if build.head?
+    # Everything but a tagged macOS install arrives here as source.
+    if build.head? || OS.linux?
       system "cargo", "install", "--features", "streaming", *std_cargo_args(path: "crates/boombox")
       doc.install "README.md", "LICENSE"
     else
       bin.install "boombox"
       # The licence texts of everything compiled into the binary travel with
-      # it, which is the obligation a binary release carries.
+      # it, which is the obligation a binary release carries. Only the
+      # release tarball has them; a source build has no such file.
       doc.install "README.md", "LICENSE", "THIRD_PARTY_LICENSES.html"
     end
   end
@@ -65,8 +74,9 @@ class Boombox < Formula
     # reports itself rather than pretending to test playback.
     assert_match "boombox", shell_output("#{bin}/boombox --version")
 
-    # A prebuilt binary can be the wrong architecture or miss a library in a
-    # way a source build cannot, and --version alone would not notice.
+    # On macOS this is a binary someone else built, so it can be the wrong
+    # architecture or miss a library in a way a source build cannot, and
+    # `boombox` alone in the output would not notice.
     assert_match version.to_s, shell_output("#{bin}/boombox --version")
 
     # Pointed at an empty directory so it cannot find a real config: a
