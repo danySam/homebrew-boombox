@@ -1,7 +1,7 @@
 class Boombox < Formula
   desc "Spotify client for the terminal: a TUI and a scriptable CLI over the same core"
   homepage "https://github.com/danySam/boombox"
-  version "0.2.1"
+  version "0.2.2"
   license "MIT"
 
   # macOS installs the binary the release workflow built. Linux compiles.
@@ -22,18 +22,18 @@ class Boombox < Formula
   # built against the distribution's own ALSA and needs no Homebrew at all.
   on_macos do
     on_arm do
-      url "https://github.com/danySam/boombox/releases/download/v0.2.1/boombox-v0.2.1-aarch64-apple-darwin.tar.gz"
-      sha256 "95df442a1c749fa4d9b1d1395f82fb83f0255c843d663acc97865226a21e9a12"
+      url "https://github.com/danySam/boombox/releases/download/v0.2.2/boombox-v0.2.2-aarch64-apple-darwin.tar.gz"
+      sha256 "fe846fda34f686a7931000ec98a1ea972df10782c97592fd573972bb43214a8f"
     end
     on_intel do
-      url "https://github.com/danySam/boombox/releases/download/v0.2.1/boombox-v0.2.1-x86_64-apple-darwin.tar.gz"
-      sha256 "9727a29224f13c6a8f0d961fe40144b31e9bd86a709c683b263f565fa68fcf30"
+      url "https://github.com/danySam/boombox/releases/download/v0.2.2/boombox-v0.2.2-x86_64-apple-darwin.tar.gz"
+      sha256 "25bc1ce8069d85bf82f81f19c7713c034afc62f6b9ddf723ef2391fc39b216d8"
     end
   end
 
   on_linux do
-    url "https://github.com/danySam/boombox/archive/refs/tags/v0.2.1.tar.gz"
-    sha256 "059343c6ac5d7780997d0e9934dd1cee3ed91ad569b724665cd9c67f7f22c842"
+    url "https://github.com/danySam/boombox/archive/refs/tags/v0.2.2.tar.gz"
+    sha256 "21ab9dfc51b96a72e450835f2ceac1306e48f6d235872ae9eb1da762681b09d8"
 
     depends_on "pkgconf" => :build
     depends_on "rust" => :build
